@@ -284,15 +284,41 @@ class VultrVectorMemory:
 def make_collection_name(scope_type: str, scope_id: str) -> str:
     """Canonical Vector Store collection name for a memory scope.
 
-    Example: ``("dataset", "ds_ab12cd")`` → ``"manthan-dataset-ds_ab12cd"``.
+    Vultr derives the collection id by stripping non-alphanumeric chars
+    from the name (underscores are kept, dashes removed) and truncating
+    to 14 characters. So two collections whose names share the first 14
+    slugged chars collide — Vultr returns HTTP 422 "Duplicate collection
+    name found" on the second create even though the names differ.
+
+    We put the ``scope_id`` (the most discriminating field) at the FRONT
+    so different scopes produce different ids even after truncation.
+
+    Example:
+        ``("dataset", "ds_ab12cd")`` → ``"ds_ab12cd_dataset_manthan"``
+        slugged: ``ds_ab12cd_data`` (14 chars, unique per scope_id)
     """
-    return f"manthan-{scope_type}-{scope_id}"
+    return f"{scope_id}_{scope_type}_manthan"
 
 
 def _extract_id(obj: Any) -> str | None:
-    """Vultr returns id in any of: ``id``, ``vector_store_id``, ``item_id``."""
+    """Vultr id field varies across endpoints.
+
+    POST ``/vector_store`` returns ``{collection: {id, name, ...}}``.
+    POST ``/items`` returns ``{item: {id, ...}}`` (or sometimes ``{id, ...}``).
+    Single GETs sometimes return the bare object. We probe the common
+    wrappers as well as the top level so this works across endpoints.
+    """
     if not isinstance(obj, dict):
         return None
+    # Unwrap one envelope level if Vultr wrapped the object.
+    for wrap in ("collection", "item", "vector_store", "data"):
+        inner = obj.get(wrap)
+        if isinstance(inner, dict):
+            for key in ("id", "vector_store_id", "item_id", "collection_id"):
+                val = inner.get(key)
+                if isinstance(val, str) and val:
+                    return val
+    # Top-level id.
     for key in ("id", "vector_store_id", "item_id", "collection_id"):
         val = obj.get(key)
         if isinstance(val, str) and val:
@@ -301,11 +327,16 @@ def _extract_id(obj: Any) -> str | None:
 
 
 def _unwrap_list(body: Any) -> list[Any]:
-    """Vultr APIs sometimes wrap arrays under ``data`` / ``items`` / ``results``."""
+    """Vultr endpoints wrap arrays under various keys.
+
+    - ``GET /vector_store`` → ``{collections: [...]}``
+    - ``GET /vector_store/{id}/items`` → ``{items: [...]}``
+    - ``POST /vector_store/{id}/search`` → ``{results: [...]}`` or ``{data: [...]}``
+    """
     if isinstance(body, list):
         return body
     if isinstance(body, dict):
-        for key in ("data", "items", "results"):
+        for key in ("collections", "items", "results", "data"):
             val = body.get(key)
             if isinstance(val, list):
                 return val
