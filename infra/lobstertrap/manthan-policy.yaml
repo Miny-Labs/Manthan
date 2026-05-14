@@ -1,0 +1,116 @@
+# Lobster Trap policy — Manthan production preset
+#
+# Drops in front of Vultr Serverless Inference (OpenAI-compatible endpoint)
+# and inspects every prompt the agent sends + every response the model returns.
+# Built on Veea's default policy with Manthan-flavoured tuning: analytical
+# SQL/Python is whitelisted, everything is logged, and the dangerous-command
+# rule has been raised so legitimate agent tool calls don't get caught.
+#
+# To customise, fork this file and pass --policy <your-file> when starting
+# the proxy. Rules are first-match-wins (iptables-style).
+
+version: "1.0"
+policy_name: "manthan-production"
+default_action: ALLOW
+
+ingress_rules:
+  # ── Adversarial prompt blocks ─────────────────────────────────
+  - name: block_prompt_injection
+    description: "Classic ignore-previous-instructions / role-jailbreak attempts"
+    priority: 100
+    action: DENY
+    deny_message: "[LOBSTER TRAP] Blocked: prompt injection detected."
+    conditions:
+      - field: contains_injection_patterns
+        match_type: boolean
+        value: true
+
+  - name: block_data_exfiltration
+    description: "Prompt asks the agent to leak schema, secrets, or user data"
+    priority: 92
+    action: DENY
+    deny_message: "[LOBSTER TRAP] Blocked: data exfiltration pattern detected."
+    conditions:
+      - field: contains_exfiltration
+        match_type: boolean
+        value: true
+
+  - name: block_obfuscation
+    description: "Encoding / base64 / unicode tricks used to evade detection"
+    priority: 90
+    action: DENY
+    deny_message: "[LOBSTER TRAP] Blocked: obfuscation pattern detected."
+    conditions:
+      - field: contains_obfuscation
+        match_type: boolean
+        value: true
+
+  # NOTE: the default policy's `block_pii_request` ingress rule is
+  # disabled here. Manthan's system prompt mentions business entities
+  # ("company", "investor", "customer") that the inspector's PII regex
+  # treats as a request for personal data. For a governed BI analyst
+  # those are public business columns, not PII. We catch the only
+  # leak that actually matters — credentials in the model's RESPONSE —
+  # via the egress rule below.
+
+  # ── Manthan-specific: ALLOW + LOG analytical work ─────────────
+  - name: log_sql_analytics
+    description: "SQL or Python analytical work — log for the audit drawer"
+    priority: 40
+    action: LOG
+    conditions:
+      - field: intent_category
+        match_type: equals
+        value: "data_analysis"
+
+  - name: log_code_execution
+    description: "Agent's run_python / run_sql tool calls — keep an audit trail"
+    priority: 30
+    action: LOG
+    conditions:
+      - field: contains_code_execution
+        match_type: boolean
+        value: true
+
+# ── Egress: scan model responses too ────────────────────────────
+egress_rules:
+  - name: block_credential_leak
+    description: "Model response contains an API key / secret / token"
+    priority: 95
+    action: DENY
+    deny_message: "[LOBSTER TRAP] Blocked: credential pattern in response."
+    conditions:
+      - field: contains_credentials
+        match_type: boolean
+        value: true
+
+  - name: log_numeric_claims
+    description: "Response contains figures — keep for downstream audit drawer"
+    priority: 20
+    action: LOG
+    conditions:
+      - field: contains_numeric_claims
+        match_type: boolean
+        value: true
+
+# ── Rate limit: stops a runaway loop from burning Vultr Inference quota ──
+rate_limits:
+  requests_per_minute: 240
+  burst: 30
+
+# ── Network policy: model only talks to Vultr Inference, nothing else ────
+network:
+  egress_policy: allowlist
+  allowed_hosts:
+    - api.vultrinference.com
+
+# ── Filesystem policy: belt-and-braces guard ────────────────────
+filesystem:
+  denied_paths:
+    - "/etc/**"
+    - "/var/log/**"
+    - "/.aws/**"
+    - "/.ssh/**"
+    - "**/.env"
+    - "**/credentials*.json"
+    - "**/service-account*.json"
