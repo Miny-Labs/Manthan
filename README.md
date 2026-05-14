@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <strong>Live: <a href="https://manthan.quest">manthan.quest</a></strong> · Built for the <strong>AI Agent Olympics</strong> at Milan AI Week 2026
+  <strong>Live: <a href="https://manthandemo.duckdns.org">manthandemo.duckdns.org</a></strong> · Built for the <strong>AI Agent Olympics</strong> at Milan AI Week 2026
 </p>
 
 <p align="center">
@@ -191,7 +191,7 @@ Every upstream LLM call is policy-checked at parse time and audited to disk. A r
 
 ## Getting started
 
-> **First time?** A live instance runs at **[manthan.quest](https://manthan.quest)** — upload any CSV and work through the flow without installing anything.
+> **First time?** A live instance runs at **[manthandemo.duckdns.org](https://manthandemo.duckdns.org)** — pre-loaded with five enterprise datasets (payments, e-commerce, churn, HR, developer-talent). Click any card, ask a hard question.
 
 ### Prerequisites
 
