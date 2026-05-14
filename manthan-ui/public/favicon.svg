@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!--
+    Manthan mark: stylized "M" where the center dip becomes
+    an upward peak — data goes in, insight comes out.
+    Bold 3px strokes, reads clearly at 16px.
+  -->
+  <path
+    d="M6 24V10l10 8 10-8v14"
+    stroke="#6E56CF"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <style>
+    @media (prefers-color-scheme: dark) {
+      path { stroke: #A78BFA; }
+    }
+  </style>
+</svg>

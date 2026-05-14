@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Surfaces with real depth ── */
+  --color-surface-0: oklch(97% 0.005 65);
+  --color-surface-1: oklch(99.5% 0.002 65);
+  --color-surface-raised: oklch(100% 0 0);
+  --color-surface-2: oklch(94% 0.004 65);
+  --color-surface-3: oklch(90% 0.004 65);
+  --color-surface-sunken: oklch(95.5% 0.006 65);
+
+  /* ── Text ── */
+  --color-text-primary: oklch(15% 0.01 65);
+  --color-text-secondary: oklch(40% 0.01 65);
+  --color-text-tertiary: oklch(58% 0.008 65);
+  --color-text-faint: oklch(72% 0.005 65);
+
+  /* ── Brand: deep indigo ── */
+  --color-accent: oklch(52% 0.2 265);
+  --color-accent-hover: oklch(45% 0.2 265);
+  --color-accent-soft: oklch(95% 0.035 265);
+  --color-accent-text: oklch(99% 0.005 265);
+
+  /* ── Semantic ── */
+  --color-success: oklch(48% 0.15 155);
+  --color-success-soft: oklch(95% 0.03 155);
+  --color-warning: oklch(65% 0.16 75);
+  --color-warning-soft: oklch(95% 0.04 75);
+  --color-error: oklch(52% 0.18 25);
+  --color-error-soft: oklch(95% 0.03 25);
+
+  /* ── Borders ── */
+  --color-border: oklch(91% 0.004 65);
+  --color-border-strong: oklch(83% 0.005 65);
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px oklch(15% 0.01 65 / 0.04);
+  --shadow-sm: 0 1px 3px oklch(15% 0.01 65 / 0.06), 0 1px 2px oklch(15% 0.01 65 / 0.04);
+  --shadow-md: 0 4px 12px oklch(15% 0.01 65 / 0.06), 0 1px 3px oklch(15% 0.01 65 / 0.04);
+  --shadow-lg: 0 8px 24px oklch(15% 0.01 65 / 0.08), 0 2px 6px oklch(15% 0.01 65 / 0.04);
+  --shadow-input: 0 2px 8px oklch(15% 0.01 65 / 0.05), 0 0 0 1px oklch(15% 0.01 65 / 0.06);
+
+  /* ── Spacing ── */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
+
+  /* ── Easing ── */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── Type scale ── */
+  --font-size-xs: 0.75rem; --font-size-sm: 0.875rem;
+  --font-size-base: 1rem; --font-size-lg: 1.25rem;
+  --font-size-xl: 1.563rem; --font-size-2xl: 2rem;
+  --font-size-3xl: 2.5rem;
+
+  /* ── Radii ── */
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+  html {
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    background: var(--color-surface-0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; }
+  h4, h5, h6 { line-height: 1.3; }
+  p, li { max-width: 65ch; }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  button, [role="button"], a {
+    cursor: pointer;
+    transition: all 150ms var(--ease-out-quart);
+  }
+
+  button:active:not(:disabled) { transform: scale(0.97); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
+
+/* ── Animations ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 350ms var(--ease-out-quart) both; }
+
+.stagger-item {
+  animation: fade-up 350ms var(--ease-out-quart) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(65% 0.16 75 / 0.3); }
+  50% { box-shadow: 0 0 0 4px oklch(65% 0.16 75 / 0); }
+}
+.animate-tool-active { animation: pulse-glow 1.5s ease-in-out infinite; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--color-surface-sunken) 25%, var(--color-surface-0) 50%, var(--color-surface-sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spin-slow 2s linear infinite; }
+
+/* Soft fade-in for live status text swaps (thinking ladder). */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in { animation: fade-in 400ms ease-out both; }
+
+/* ── Cinematic fade-rise ── */
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-rise { animation: fade-rise 0.8s ease-out both; }
+.animate-fade-rise-delay { animation: fade-rise 0.8s ease-out 0.2s both; }
+.animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
+.animate-fade-rise-delay-3 { animation: fade-rise 0.8s ease-out 0.6s both; }
+
+/* ── Liquid glass effect ── */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.15);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.2) 20%,
+    rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%,
+    rgba(255,255,255,0.2) 80%, rgba(255,255,255,0.5) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Font families ── */
+.font-display { font-family: 'Instrument Serif', serif; }
+.font-body { font-family: 'Inter', sans-serif; }
+
+/* Logo animation is self-contained in ManthanLogo.tsx via inline <style> */
+
+/* ── Details/Summary ── */
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* ── Text truncation with gradient fade ── */
+.text-fade {
+  position: relative;
+  max-height: 4.5em;
+  overflow: hidden;
+}
+.text-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2em;
+  background: linear-gradient(transparent, var(--color-surface-0));
+  pointer-events: none;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
