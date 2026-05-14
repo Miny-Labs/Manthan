@@ -364,13 +364,25 @@ def _build_columns_prompt(profiles: list[ColumnProfile]) -> str:
     return "\n".join(lines)
 
 
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
 def _parse_classifications(raw: str) -> list[ColumnClassification]:
     """Parse LLM output into :class:`ColumnClassification` objects.
 
     Tolerates common deviations: leading/trailing whitespace, markdown
-    fences, or a ``classifications`` list returned at the top level.
+    fences, ``<think>...</think>`` chain-of-thought wrappers (MiniMax M2.7
+    on Vultr Inference emits these inline rather than in a separate
+    ``reasoning`` field), or a ``classifications`` list returned at the
+    top level.
     """
     text = raw.strip()
+
+    # Strip MiniMax-style <think>...</think> reasoning wrappers, plus any
+    # orphan tags left behind by a partial match.
+    if "<think>" in text:
+        text = _THINK_BLOCK_RE.sub("", text)
+        text = text.replace("<think>", "").replace("</think>", "").strip()
 
     # Strip optional Markdown fences like ```json ... ```
     if text.startswith("```"):

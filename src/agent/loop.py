@@ -18,6 +18,7 @@ Key production features:
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -31,6 +32,30 @@ from src.agent.aliasing import build_catalog_from_dcds
 from src.agent.config import AgentConfig
 from src.agent.prompt import assemble_prompt
 from src.agent.tools import TOOL_DEFINITIONS, ToolRouter
+
+# Reasoning-content normalization. Some Vultr Inference models (notably
+# MiniMax M2.7) emit their chain-of-thought inline as ``<think>...</think>``
+# wrappers in the content field, rather than splitting it into the
+# ``reasoning`` field that the OpenAI-compat shim normally produces. We
+# pull those wrappers out and route them through the thinking event stream
+# so the user-facing narrative stays clean.
+_THINK_BLOCK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
+
+def _split_think_from_content(text: str) -> tuple[str, str]:
+    """Split MiniMax-style ``<think>...</think>`` blocks out of model content.
+
+    Returns ``(thinking, cleaned_content)``. Either may be an empty string.
+    Stray opening tags without a matching close are stripped too so leaked
+    partials don't show up in the user-facing narrative.
+    """
+    if not text or "<think>" not in text:
+        return "", text or ""
+    thinks = [m.strip() for m in _THINK_BLOCK_RE.findall(text) if m.strip()]
+    cleaned = _THINK_BLOCK_RE.sub("", text)
+    # Drop any orphan <think> markers left after a regex non-match.
+    cleaned = cleaned.replace("<think>", "").replace("</think>", "").strip()
+    return ("\n\n".join(thinks), cleaned)
 
 
 @dataclass
@@ -219,7 +244,15 @@ class ManthanAgent:
             # block routinely exceeds 500 chars, so route long content
             # through the narrative path (which has a 6000-char budget and
             # parses the ---NEXT--- marker into follow-up chips).
-            content = assistant_msg.get("content")
+            #
+            # Some Vultr Inference models (MiniMax M2.7) emit their
+            # chain-of-thought inline as ``<think>...</think>``. Split it
+            # out and route the reasoning through the thinking event so
+            # the narrative path only carries the user-facing answer.
+            raw_content = assistant_msg.get("content") or ""
+            think_part, content = _split_think_from_content(raw_content)
+            if think_part:
+                yield events.thinking(think_part)
             if content:
                 if len(content) > 400 or "---NEXT---" in content:
                     yield events.narrative(content)
