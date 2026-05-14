@@ -1,0 +1,63 @@
+"""Agent configuration."""
+
+from __future__ import annotations
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class AgentConfig(BaseSettings):
+    """Layer 2 agent settings — loaded from .env.
+
+    Uses AGENT_ prefix for agent-specific settings. The Vultr key falls
+    back to ``VULTR_API_KEY`` (no prefix) if ``AGENT_VULTR_API_KEY`` is
+    not set, so the same .env works for both Layer 1 and Layer 2.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        env_prefix="AGENT_",
+    )
+
+    @classmethod
+    def _resolve_api_key(cls) -> str:
+        """Fall back to VULTR_API_KEY if AGENT_ prefixed key not set."""
+        import os
+
+        return os.environ.get(
+            "AGENT_VULTR_API_KEY",
+            os.environ.get("VULTR_API_KEY", ""),
+        )
+
+    model: str = Field(
+        default="MiniMaxAI/MiniMax-M2.7-normalize",
+        description="Vultr Inference model for agent reasoning. Override via AGENT_MODEL env var.",
+    )
+    vultr_api_key: str = Field(
+        default="",
+        description="Falls back to VULTR_API_KEY if not set.",
+    )
+    vultr_base_url: str = Field(
+        default="https://api.vultrinference.com/v1",
+    )
+
+    @property
+    def resolved_model(self) -> str:
+        """Model slug."""
+        return self.model
+
+    layer1_url: str = Field(
+        default="http://127.0.0.1:8000",
+        description="Layer 1 API base URL",
+    )
+    max_turns: int = Field(default=25, ge=1, le=100)
+    max_subagent_turns: int = Field(default=8, ge=1, le=20)
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    max_tool_result_tokens: int = Field(
+        default=4000,
+        description="Truncate tool results beyond this",
+    )
+    timeout_seconds: int = Field(default=180, ge=10)
