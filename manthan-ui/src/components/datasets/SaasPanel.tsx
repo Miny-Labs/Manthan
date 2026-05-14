@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronRight, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { Check, AlertTriangle, Loader2 } from "lucide-react";
 import { BASE_URL } from "@/api/client";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { cn } from "@/lib/utils";
 
 /**
- * SaaS connector picker — per-connector input forms.
+ * SaaS connector picker — two-pane layout.
  *
- * Each of the ten connectors expands inline to its own field schema
- * (API key, OAuth token, resource selector). Submit posts to
- * `POST /datasets/connect-saas` with `{connector, config}`. The backend
- * fetches the requested resource via the upstream REST API, flattens
- * the response with pandas.json_normalize, trims to the useful
- * business columns, and routes the result through Manthan's standard
- * ingestion pipeline so the new dataset lands as Gold state with a
- * DCD, rollups, click-to-audit metrics, the works.
+ * Left rail lists every connector; right pane is the form for the
+ * selected one. Submit posts to `POST /datasets/connect-saas` with
+ * `{connector, config}`. The backend fetches the requested resource
+ * via the upstream REST API, flattens the response with
+ * pandas.json_normalize, trims to the useful business columns, and
+ * routes the result through Manthan's standard ingestion pipeline so
+ * the new dataset lands as Gold state — DCD, rollups, click-to-audit.
  */
 
 type ConnectorSlug =
+  | "github"
   | "stripe"
   | "hubspot"
   | "salesforce"
@@ -27,7 +27,6 @@ type ConnectorSlug =
   | "airtable"
   | "googleads"
   | "meta"
-  | "github"
   | "slack";
 
 type FieldKind = "text" | "password" | "select";
@@ -46,7 +45,6 @@ interface ConnectorDef {
   slug: ConnectorSlug;
   label: string;
   blurb: string;
-  status: "live" | "preview";
   fields: FieldDef[];
 }
 
@@ -55,7 +53,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "github",
     label: "GitHub",
     blurb: "Issues, pull requests, commits, releases, contributors.",
-    status: "live",
     fields: [
       {
         name: "repo",
@@ -76,7 +73,8 @@ const CONNECTORS: ConnectorDef[] = [
         label: "Personal access token",
         kind: "password",
         placeholder: "ghp_… (leave blank for public repos)",
-        helper: "Optional. Public repos work unauthenticated, but you'll hit GitHub's 60/hr rate limit.",
+        helper:
+          "Optional. Public repos work unauthenticated, but you'll hit GitHub's 60/hr rate limit.",
       },
     ],
   },
@@ -84,7 +82,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "stripe",
     label: "Stripe",
     blurb: "Charges, customers, invoices, subscriptions.",
-    status: "live",
     fields: [
       {
         name: "api_key",
@@ -97,7 +94,13 @@ const CONNECTORS: ConnectorDef[] = [
         name: "resource",
         label: "Resource",
         kind: "select",
-        options: ["charges", "customers", "invoices", "subscriptions", "balance_transactions"],
+        options: [
+          "charges",
+          "customers",
+          "invoices",
+          "subscriptions",
+          "balance_transactions",
+        ],
         required: true,
       },
       {
@@ -112,7 +115,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "hubspot",
     label: "HubSpot",
     blurb: "Contacts, companies, deals, tickets.",
-    status: "live",
     fields: [
       {
         name: "access_token",
@@ -134,7 +136,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "salesforce",
     label: "Salesforce",
     blurb: "Accounts, Contacts, Opportunities, Leads.",
-    status: "live",
     fields: [
       {
         name: "instance_url",
@@ -143,18 +144,8 @@ const CONNECTORS: ConnectorDef[] = [
         placeholder: "https://yourorg.my.salesforce.com",
         required: true,
       },
-      {
-        name: "username",
-        label: "Username",
-        kind: "text",
-        required: true,
-      },
-      {
-        name: "password",
-        label: "Password",
-        kind: "password",
-        required: true,
-      },
+      { name: "username", label: "Username", kind: "text", required: true },
+      { name: "password", label: "Password", kind: "password", required: true },
       {
         name: "security_token",
         label: "Security token",
@@ -175,7 +166,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "shopify",
     label: "Shopify",
     blurb: "Orders, customers, products, inventory.",
-    status: "live",
     fields: [
       {
         name: "shop_domain",
@@ -204,7 +194,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "notion",
     label: "Notion",
     blurb: "Database rows + page metadata.",
-    status: "live",
     fields: [
       {
         name: "integration_token",
@@ -226,7 +215,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "airtable",
     label: "Airtable",
     blurb: "Bases, tables, views.",
-    status: "live",
     fields: [
       {
         name: "access_token",
@@ -242,19 +230,13 @@ const CONNECTORS: ConnectorDef[] = [
         placeholder: "app…",
         required: true,
       },
-      {
-        name: "table",
-        label: "Table name",
-        kind: "text",
-        required: true,
-      },
+      { name: "table", label: "Table name", kind: "text", required: true },
     ],
   },
   {
     slug: "googleads",
     label: "Google Ads",
     blurb: "Campaigns, ad groups, keyword performance.",
-    status: "live",
     fields: [
       {
         name: "customer_id",
@@ -286,14 +268,20 @@ const CONNECTORS: ConnectorDef[] = [
         name: "refresh_token",
         label: "OAuth refresh token",
         kind: "password",
-        helper: "Generate via the Google OAuth 2.0 Playground with the AdWords scope.",
+        helper:
+          "Generate via the Google OAuth 2.0 Playground with the AdWords scope.",
         required: true,
       },
       {
         name: "resource",
         label: "Report",
         kind: "select",
-        options: ["campaign_performance", "ad_group_performance", "keyword_view", "search_terms"],
+        options: [
+          "campaign_performance",
+          "ad_group_performance",
+          "keyword_view",
+          "search_terms",
+        ],
         required: true,
       },
     ],
@@ -302,7 +290,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "meta",
     label: "Meta Ads",
     blurb: "Campaigns, ads, insights from Facebook + Instagram.",
-    status: "live",
     fields: [
       {
         name: "access_token",
@@ -331,7 +318,6 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "slack",
     label: "Slack",
     blurb: "Channels, messages, members.",
-    status: "live",
     fields: [
       {
         name: "bot_token",
@@ -364,88 +350,55 @@ type SubmitState =
   | { kind: "error"; message: string };
 
 export function SaasPanel() {
-  const [openSlug, setOpenSlug] = useState<ConnectorSlug | null>(null);
-  return (
-    <div>
-      <p className="text-sm text-text-secondary mb-4 font-body">
-        SaaS connectors land in your workspace as standard datasets. Pick one
-        to enter credentials, choose a resource, and start syncing.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {CONNECTORS.map((c) => (
-          <ConnectorCard
-            key={c.slug}
-            connector={c}
-            open={openSlug === c.slug}
-            onToggle={() => setOpenSlug(openSlug === c.slug ? null : c.slug)}
-          />
-        ))}
-      </div>
-      <p className="text-[11px] text-text-tertiary mt-4">
-        Custom connector? Paste an OpenAPI spec URL and we'll scaffold one for
-        you via <code className="font-mono">dlt-init-openapi</code>.
-      </p>
-    </div>
-  );
-}
+  const [activeSlug, setActiveSlug] = useState<ConnectorSlug>(CONNECTORS[0].slug);
+  const active = CONNECTORS.find((c) => c.slug === activeSlug) ?? CONNECTORS[0];
 
-function ConnectorCard({
-  connector,
-  open,
-  onToggle,
-}: {
-  connector: ConnectorDef;
-  open: boolean;
-  onToggle: () => void;
-}) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border bg-surface-1 transition-all overflow-hidden",
-        open ? "border-accent" : "border-border hover:border-border-strong",
-      )}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
-      >
-        <ConnectorIcon slug={connector.slug} size={20} showBackground />
-        <div className="flex-1 min-w-0">
-          <div className="text-sm text-text-primary font-body">{connector.label}</div>
-          <div className="text-[11px] text-text-tertiary truncate">{connector.blurb}</div>
-        </div>
-        {connector.status === "live" ? (
-          <span className="text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
-            Live
-          </span>
-        ) : (
-          <span className="text-[10px] text-text-tertiary uppercase tracking-wider shrink-0">
-            Preview
-          </span>
-        )}
-        <ChevronRight
-          size={14}
-          className={cn(
-            "text-text-faint shrink-0 transition-transform",
-            open && "rotate-90",
-          )}
-        />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
+    <div className="-mx-5 -my-5 grid grid-cols-[200px_1fr] min-h-[420px]">
+      {/* Left rail — connector list */}
+      <nav className="border-r border-border bg-surface-1/40 overflow-y-auto py-2">
+        {CONNECTORS.map((c) => {
+          const isActive = c.slug === activeSlug;
+          return (
+            <button
+              key={c.slug}
+              type="button"
+              onClick={() => setActiveSlug(c.slug)}
+              className={cn(
+                "w-full flex items-center gap-2.5 px-4 py-2 text-sm text-left transition-colors font-body",
+                isActive
+                  ? "bg-surface-0 text-text-primary"
+                  : "text-text-secondary hover:bg-surface-sunken hover:text-text-primary",
+              )}
+            >
+              <ConnectorIcon slug={c.slug} size={16} showBackground={false} />
+              <span className="flex-1 truncate">{c.label}</span>
+              {isActive && (
+                <span className="w-1 h-4 rounded-sm bg-accent shrink-0" aria-hidden />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Right pane — selected connector form */}
+      <div className="overflow-y-auto px-6 py-5 font-body">
+        <AnimatePresence mode="wait">
           <motion.div
-            key="form"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="overflow-hidden"
+            key={active.slug}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
           >
-            <ConnectorForm connector={connector} />
+            <ConnectorForm connector={active} />
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+        <p className="text-[11px] text-text-tertiary mt-6 pt-4 border-t border-border">
+          Custom connector? Paste an OpenAPI spec URL and we'll scaffold one for
+          you via <code className="font-mono">dlt-init-openapi</code>.
+        </p>
+      </div>
     </div>
   );
 }
@@ -464,15 +417,14 @@ function ConnectorForm({ connector }: { connector: ConnectorDef }) {
   const update = (name: string, value: string) =>
     setValues((v) => ({ ...v, [name]: value }));
 
-  const missingRequired = connector.fields
-    .filter((f) => f.required && !values[f.name]?.trim())
-    .map((f) => f.label);
-
   async function submit() {
-    if (missingRequired.length > 0) {
+    const missing = connector.fields
+      .filter((f) => f.required && !values[f.name]?.trim())
+      .map((f) => f.label);
+    if (missing.length > 0) {
       setState({
         kind: "error",
-        message: `Missing required: ${missingRequired.join(", ")}`,
+        message: `Missing required: ${missing.join(", ")}`,
       });
       return;
     }
@@ -492,7 +444,7 @@ function ConnectorForm({ connector }: { connector: ConnectorDef }) {
           kind: "ok",
           message:
             body.message ||
-            `Connected. ${body.dataset_id ? "Dataset ready: " + body.dataset_id : "Sync scheduled."}`,
+            `Connected. ${body.dataset_id ? "Dataset ready: " + body.dataset_id : "Sync started."}`,
         });
       } else {
         setState({
@@ -509,20 +461,38 @@ function ConnectorForm({ connector }: { connector: ConnectorDef }) {
   }
 
   return (
-    <div className="px-3 pb-3 pt-1 border-t border-border bg-surface-0 space-y-3">
-      {connector.fields.map((f) => (
-        <FieldInput key={f.name} field={f} value={values[f.name]} onChange={(v) => update(f.name, v)} />
-      ))}
-      <div className="flex items-center justify-between pt-1">
-        <div className="text-[11px] text-text-tertiary truncate pr-2">
+    <div>
+      <header className="flex items-center gap-3 pb-4 border-b border-border mb-5">
+        <ConnectorIcon slug={connector.slug} size={28} showBackground />
+        <div className="min-w-0">
+          <h3 className="text-base text-text-primary font-display">
+            {connector.label}
+          </h3>
+          <p className="text-xs text-text-tertiary truncate">{connector.blurb}</p>
+        </div>
+      </header>
+
+      <div className="space-y-3.5">
+        {connector.fields.map((f) => (
+          <FieldInput
+            key={f.name}
+            field={f}
+            value={values[f.name]}
+            onChange={(v) => update(f.name, v)}
+          />
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-border">
+        <div className="text-[12px] text-text-tertiary min-w-0 flex-1">
           {state.kind === "error" && (
-            <span className="text-rose-600 dark:text-rose-300 flex items-center gap-1">
-              <AlertTriangle size={11} /> {state.message}
+            <span className="text-rose-600 dark:text-rose-300 flex items-center gap-1.5">
+              <AlertTriangle size={12} /> {state.message}
             </span>
           )}
           {state.kind === "ok" && (
-            <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
-              <Check size={11} /> {state.message}
+            <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+              <Check size={12} /> {state.message}
             </span>
           )}
         </div>
@@ -530,9 +500,11 @@ function ConnectorForm({ connector }: { connector: ConnectorDef }) {
           type="button"
           onClick={submit}
           disabled={state.kind === "submitting"}
-          className="text-xs px-3 py-1.5 rounded-md bg-accent text-on-accent hover:bg-accent-hover transition-colors disabled:opacity-60 flex items-center gap-1.5 shrink-0"
+          className="text-sm px-4 py-2 rounded-md bg-accent text-on-accent hover:bg-accent-hover transition-colors disabled:opacity-60 flex items-center gap-2 shrink-0 font-body"
         >
-          {state.kind === "submitting" && <Loader2 size={11} className="animate-spin" />}
+          {state.kind === "submitting" && (
+            <Loader2 size={12} className="animate-spin" />
+          )}
           {state.kind === "submitting" ? "Connecting…" : `Connect ${connector.label}`}
         </button>
       </div>
@@ -577,7 +549,9 @@ function FieldInput({
         />
       )}
       {field.helper && (
-        <p className="text-[10px] text-text-tertiary mt-1 font-body">{field.helper}</p>
+        <p className="text-[10px] text-text-tertiary mt-1 font-body leading-snug">
+          {field.helper}
+        </p>
       )}
     </div>
   );
