@@ -120,6 +120,12 @@ async def upload_dataset(
             max_upload_size_mb=settings.max_upload_size_mb,
             original_filename=file.filename,
             llm_client_factory=llm_client_factory,
+            # The sync /upload endpoint is consumed by scripts, demos,
+            # and CI; nobody is waiting in the wizard to answer
+            # column-clarification prompts. Accept the LLM's confident
+            # labels and skip the interactive gate so the call always
+            # returns a gold-state dataset within one round trip.
+            skip_clarification=True,
         )
     except IngestionError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
