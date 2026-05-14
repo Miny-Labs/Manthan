@@ -10,9 +10,12 @@ import { cn } from "@/lib/utils";
  *
  * Each of the ten connectors expands inline to its own field schema
  * (API key, OAuth token, resource selector). Submit posts to
- * `POST /datasets/connect-saas` with `{connector, config}` and the
- * backend either runs a real ingest (GitHub) or persists the config
- * and schedules a sync (the rest).
+ * `POST /datasets/connect-saas` with `{connector, config}`. The backend
+ * fetches the requested resource via the upstream REST API, flattens
+ * the response with pandas.json_normalize, trims to the useful
+ * business columns, and routes the result through Manthan's standard
+ * ingestion pipeline so the new dataset lands as Gold state with a
+ * DCD, rollups, click-to-audit metrics, the works.
  */
 
 type ConnectorSlug =
@@ -81,7 +84,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "stripe",
     label: "Stripe",
     blurb: "Charges, customers, invoices, subscriptions.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "api_key",
@@ -109,7 +112,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "hubspot",
     label: "HubSpot",
     blurb: "Contacts, companies, deals, tickets.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "access_token",
@@ -131,7 +134,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "salesforce",
     label: "Salesforce",
     blurb: "Accounts, Contacts, Opportunities, Leads.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "instance_url",
@@ -172,7 +175,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "shopify",
     label: "Shopify",
     blurb: "Orders, customers, products, inventory.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "shop_domain",
@@ -201,7 +204,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "notion",
     label: "Notion",
     blurb: "Database rows + page metadata.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "integration_token",
@@ -223,7 +226,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "airtable",
     label: "Airtable",
     blurb: "Bases, tables, views.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "access_token",
@@ -251,7 +254,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "googleads",
     label: "Google Ads",
     blurb: "Campaigns, ad groups, keyword performance.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "customer_id",
@@ -263,6 +266,19 @@ const CONNECTORS: ConnectorDef[] = [
       {
         name: "developer_token",
         label: "Developer token",
+        kind: "password",
+        required: true,
+      },
+      {
+        name: "client_id",
+        label: "OAuth client ID",
+        kind: "text",
+        placeholder: "….apps.googleusercontent.com",
+        required: true,
+      },
+      {
+        name: "client_secret",
+        label: "OAuth client secret",
         kind: "password",
         required: true,
       },
@@ -286,7 +302,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "meta",
     label: "Meta Ads",
     blurb: "Campaigns, ads, insights from Facebook + Instagram.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "access_token",
@@ -315,7 +331,7 @@ const CONNECTORS: ConnectorDef[] = [
     slug: "slack",
     label: "Slack",
     blurb: "Channels, messages, members.",
-    status: "preview",
+    status: "live",
     fields: [
       {
         name: "bot_token",
