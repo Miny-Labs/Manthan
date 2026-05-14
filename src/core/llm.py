@@ -34,7 +34,12 @@ _DEFAULT_TIMEOUT_SECONDS = 180.0
 _DEFAULT_MAX_RETRIES = 2
 _RETRY_BACKOFF_BASE_SECONDS = 2.0
 _RETRY_BACKOFF_CAP_SECONDS = 10.0
-_RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+# Vultr Inference sometimes returns 422 under transient queue pressure on
+# valid requests (the same payload succeeds seconds later). We treat 422
+# as retryable alongside the standard retryable codes; if the body really
+# is unprocessable, every retry will return 422 and the cascade still
+# eventually fails out to the heuristic classifier.
+_RETRYABLE_STATUS_CODES = frozenset({422, 429, 500, 502, 503, 504})
 
 _logger = get_logger()
 
