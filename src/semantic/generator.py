@@ -504,7 +504,14 @@ async def generate_dataset_description(
                 [{"role": "user", "content": prompt}],
                 temperature=0.3,
             )
-        desc = reply.strip().strip('"').strip("'")
+        # Strip MiniMax-style <think>...</think> reasoning wrappers — the
+        # model emits its chain-of-thought inline as content, and we want
+        # only the final user-facing sentence here.
+        import re
+
+        cleaned = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
+        cleaned = cleaned.replace("<think>", "").replace("</think>", "")
+        desc = cleaned.strip().strip('"').strip("'")
         if len(desc) > 10:
             return desc
     except Exception:
