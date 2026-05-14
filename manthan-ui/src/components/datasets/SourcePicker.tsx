@@ -9,6 +9,7 @@ import { useProcessingStore } from "@/stores/processing-store";
 import { BASE_URL } from "@/api/client";
 import { cn } from "@/lib/utils";
 import { ConnectorIcon } from "./ConnectorIcon";
+import { SaasPanel } from "./SaasPanel";
 
 /**
  * Source picker — the production entry point for any ingestion.
@@ -681,58 +682,4 @@ function DatabasePanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── SaaS ─────────────────────────────────────────────────────────
-
-function SaasPanel() {
-  const apps: {
-    label: string;
-    slug:
-      | "stripe"
-      | "hubspot"
-      | "salesforce"
-      | "shopify"
-      | "notion"
-      | "airtable"
-      | "googleads"
-      | "meta"
-      | "github"
-      | "slack";
-  }[] = [
-    { label: "Stripe", slug: "stripe" },
-    { label: "HubSpot", slug: "hubspot" },
-    { label: "Salesforce", slug: "salesforce" },
-    { label: "Shopify", slug: "shopify" },
-    { label: "Notion", slug: "notion" },
-    { label: "Airtable", slug: "airtable" },
-    { label: "Google Ads", slug: "googleads" },
-    { label: "Meta Ads", slug: "meta" },
-    { label: "GitHub", slug: "github" },
-    { label: "Slack", slug: "slack" },
-  ];
-  return (
-    <div>
-      <p className="text-sm text-text-secondary mb-4 font-body">
-        SaaS connectors run on the <code className="font-mono">dlt</code>{" "}
-        library and land in your workspace as standard datasets.
-      </p>
-      <div className="grid grid-cols-3 gap-2">
-        {apps.map((a) => (
-          <div
-            key={a.slug}
-            className="rounded-lg border border-border bg-surface-1 px-3 py-2.5 text-sm text-text-primary font-body flex items-center gap-2.5"
-          >
-            <ConnectorIcon slug={a.slug} size={18} showBackground />
-            <span className="flex-1 truncate">{a.label}</span>
-            <span className="text-[10px] text-text-faint uppercase tracking-wider shrink-0">
-              Coming
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="text-[11px] text-text-tertiary mt-4">
-        Custom connector? Paste an OpenAPI spec URL and we'll scaffold
-        one for you.
-      </p>
-    </div>
-  );
-}
+// SaaS panel lives in ./SaasPanel — one component per connector form.

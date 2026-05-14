@@ -28,6 +28,7 @@ from src.api import (
     ask_user,
     audit,
     clarification,
+    connect_saas,
     connections,
     datasets,
     health,
@@ -156,6 +157,7 @@ app.include_router(subagents.router)
 app.include_router(tool_discovery.router)
 app.include_router(agent.router)
 app.include_router(connections.router)
+app.include_router(connect_saas.router)
 app.include_router(audit.router)
 
 
