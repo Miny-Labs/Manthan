@@ -108,6 +108,50 @@ Manthan is engineered to run on Vultr Cloud. Every layer of the stack uses a man
 
 The architectural point: **the reasoning, the memory, and the compute are all one provider away.** No vendor-lock minefield to clear before a Manthan deployment can talk to its model and remember a session across restarts.
 
+### Topology
+
+```mermaid
+flowchart LR
+    User([User browser]) -->|HTTPS| VM
+
+    subgraph VM[Vultr Cloud Compute · single VM]
+        UI[React workspace]
+        API[FastAPI · SSE streaming]
+        Loop[Agent loop · 11 tools]
+        DuckDB[(DuckDB · tenant data)]
+        SQLite[(SQLite · structured memory)]
+
+        UI --> API
+        API --> Loop
+        Loop --> DuckDB
+        Loop --> SQLite
+    end
+
+    Loop -.->|optional<br/>DPI proxy| Lobster[Veea Lobster Trap]
+    Lobster -.->|inspected<br/>+ audited| Inference
+    Loop -->|chat completions<br/>tool calls| Inference[Vultr Serverless Inference<br/>MiniMax M2.7 · normalize]
+    Loop -->|save / semantic recall| Vector[Vultr Vector Store]
+
+    classDef vultr fill:#007BFC,color:#fff,stroke:#0056b3,stroke-width:1px
+    classDef sec fill:#E63946,color:#fff,stroke:#a4202c,stroke-width:1px,stroke-dasharray:3 3
+    class VM,Inference,Vector vultr
+    class Lobster sec
+```
+
+Three Vultr surfaces, one optional security ribbon. Every dotted line is an
+inspectable hop — Lobster Trap writes a JSONL audit log of every prompt and
+response, so a regulator can read the trail and an engineer can fork the policy.
+
+### Verified end to end
+
+Smoke-tested against the [DABstep](https://huggingface.co/datasets/adyen/DABstep)
+benchmark dataset (Adyen / HuggingFace — 138K real-Stripe-like payments,
+designed for agentic data-analysis evaluation). MiniMax M2.7 via Vultr Inference
+drove the full agent loop: multi-step SQL with the sqlglot validator catching
+table-name mistakes and the agent self-correcting, statistical analysis through
+`run_python`, executive dashboards via `create_artifact`. Vector Store semantic
+recall returns the right memory as the top hit for paraphrased queries.
+
 ---
 
 ## Production security · Lobster Trap
