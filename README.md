@@ -24,6 +24,31 @@
 
 ---
 
+## Vultr deployment — submission details
+
+This is the **AI Agent Olympics · Milan AI Week 2026** submission for the
+Vultr Awards. Manthan runs end-to-end on Vultr Cloud, with the reasoning
+model served by Vultr Serverless Inference and the agent's cross-session
+memory stored in Vultr Vector Store.
+
+| | |
+|---|---|
+| **Public demo URL** | <https://manthandemo.duckdns.org> — Let's Encrypt TLS, full app surface |
+| **Raw IP (Vultr verification)** | <https://66.245.207.186> — self-signed for browser, same app on the bare Vultr IP |
+| **Vultr region** | Milan, IT (`mil` — geographically closest to the on-site judges at Fiera Milano) |
+| **Vultr Cloud Compute plan** | 2 vCPU / 4 GB RAM / 80 GB NVMe · Ubuntu 24.04 LTS |
+| **Vultr Serverless Inference model** | `MiniMaxAI/MiniMax-M2.7-normalize` (open weights, agentic-first), Qwen3.6-27B as cascade fallback |
+| **Vultr Vector Store** | Collection per dataset scope, semantic recall for the agent's `save_memory` / `recall_memory` tools |
+| **Bootstrap** | One-click via [`infra/vultr/cloud-init.yaml`](infra/vultr/cloud-init.yaml) — fresh VM to running stack in ~3 minutes |
+| **TLS** | Caddy + Let's Encrypt for the hostname; Caddy internal CA for the IP |
+| **Source of record** | [`github.com/Miny-Labs/Manthan`](https://github.com/Miny-Labs/Manthan) (Apache 2.0) |
+
+**Verify the deployment is on Vultr** — `dig manthandemo.duckdns.org` resolves to `66.245.207.186`; `whois 66.245.207.186` returns the Vultr Holdings / Choopa AS allocation. The same is visible by clicking the raw-IP URL above and inspecting the certificate's IP SAN.
+
+**Five datasets pre-loaded for the demo** — Card Payments & Fraud Intelligence (CFO · 138K rows), E-Commerce Customer Behavior (CMO · 542K rows), Subscription Churn Risk (COO · 7K rows), Workforce Attrition & Talent Risk (CHRO · 1.5K rows), Developer Talent Market (CTO · 65K rows). Click any card on the live URL, ask a hard question, watch the agent loop fire end-to-end.
+
+---
+
 ## Why Manthan
 
 Every business has the same dashboard graveyard: a Looker license nobody uses, a Tableau cert nobody renewed, six BI tools competing for the same screen. The analyst backlog grows because *"pull me the numbers"* still takes a human a week.
